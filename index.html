@@ -1,1 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CBMC Quote Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+  :root {
+    --black:#000;--green:#12b167;--green-dark:#0d8a4e;--gray:#EAEAEA;
+    --text:#1a1a1a;--muted:#6b7280;--border:#e2e8f0;
+    --warn-bg:#fffbeb;--warn:#92400e;
+    --good-bg:#f0fdf4;--good:#166534;
+    --bad-bg:#fef2f2;--bad:#991b1b;
+    --row-alt:#f8fafc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Barlow',sans-serif;background:#f1f5f9;color:var(--text);font-size:13px}
+  /* HEADER */
+  header{background:var(--black);color:white;padding:0;border-bottom:4px solid var(--green)}
+  .header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 20px}
+  .logo-img{height:32px}
+  .header-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:.5px}
+  .header-sub{font-size:11px;color:#9ca3af;margin-top:1px}
+  .header-badge{background:var(--green);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;padding:3px 10px;border-radius:3px;letter-spacing:.5px}
+  /* TOOLBAR */
+  .toolbar{background:white;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tlabel{font-weight:600;font-size:11px;color:var(--muted);white-space:nowrap}
+  .toolbar input,.toolbar select{padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;background:white}
+  .toolbar input[type=number]{width:74px}
+  .btn{padding:7px 14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:.3px;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+  .btn-green{background:var(--green);color:white}.btn-green:hover{background:var(--green-dark)}
+  .btn-outline{background:white;color:var(--black);border:1.5px solid #cbd5e1}.btn-outline:hover{background:#f8fafc}
+  .btn-dark{background:var(--black);color:white}.btn-dark:hover{background:#222}
+  .sep{width:1px;height:28px;background:var(--border);flex-shrink:0}
+  /* SUMMARY STRIP */
+  .summary-strip{background:var(--black);color:white;padding:10px 20px;display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .scard .sv{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--green)}
+  .scard .sl{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+  /* MAIN */
+  .main{padding:14px 20px;max-width:1700px;margin:0 auto}
+  /* META */
+  .meta-panel{background:white;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+  .meta-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .meta-field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+  .meta-field input,.meta-field select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px}
+  .meta-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:var(--good-bg);color:var(--good);border:1px solid #bbf7d0}
+  /* BILLING OPTIONS */
+  .billing-panel{background:white;border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:10px}
+  .billing-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;margin-bottom:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .billing-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;align-items:end}
+  .billing-field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+  .billing-field input,.billing-field select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px}
+  .toggle-group{display:flex;gap:2px;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:#f8fafc}
+  .toggle-btn{flex:1;padding:6px 8px;text-align:center;font-size:12px;font-weight:600;font-family:'Barlow Condensed',sans-serif;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .12s}
+  .toggle-btn.active{background:var(--black);color:white}
+  /* PHASE */
+  .phase-block{background:white;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+  .phase-header{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+  .phase-header-left{display:flex;align-items:center;gap:10px}
+  .phase-num{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;color:white;background:var(--black);width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center}
+  .phase-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.3px}
+  .phase-totals{display:flex;gap:14px;align-items:center}
+  .ptot .pv{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px}
+  .ptot .pl{font-size:10px;color:var(--muted);text-transform:uppercase}
+  .gp-pill{padding:3px 9px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px}
+  .gp-good{background:var(--good-bg);color:var(--good)}
+  .gp-warn{background:var(--warn-bg);color:var(--warn)}
+  .gp-bad{background:var(--bad-bg);color:var(--bad)}
+  /* TABLE */
+  .tbl-wrap{overflow-x:auto;border-top:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead tr{background:var(--black);color:white}
+  th{padding:7px 9px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12px;letter-spacing:.3px;white-space:nowrap}
+  th.r{text-align:right}
+  td{padding:6px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:nth-child(even) td{background:var(--row-alt)}
+  tr:hover td{background:#f0fdf4}
+  td.r{text-align:right;font-variant-numeric:tabular-nums}
+  .type-badge{display:inline-block;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap}
+  .dl-tag{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--green-dark);font-weight:700}
+  .cost-input{width:82px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-family:'Barlow',sans-serif;font-size:12px;text-align:right}
+  .cost-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 2px rgba(18,177,103,.15)}
+  .cost-input.modified{border-color:var(--green);background:#f0fdf4}
+  .qty-input{width:52px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-family:'Barlow',sans-serif;font-size:12px;text-align:right}
+  .billing-sel{padding:3px 5px;border:1px solid #cbd5e1;border-radius:4px;font-size:11px;font-family:'Barlow',sans-serif}
+  .section-row td{background:#f1f5f9;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:var(--muted);letter-spacing:.3px;padding:5px 9px}
+  .subtotal-row td{background:var(--black);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:7px 9px}
+  .subtotal-row td.r{text-align:right}
+  .allowance-row td{background:#fffbeb;font-style:italic;color:var(--warn);font-size:11px}
+  .add-line-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;font-size:12px;color:var(--green);font-weight:600;cursor:pointer;border:none;background:none;font-family:'Barlow',sans-serif}
+  .add-line-btn:hover{color:var(--green-dark)}
+  /* TOTALS PANEL */
+  .totals-panel{background:white;border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-top:10px}
+  .totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .terms-box{font-size:11px;color:var(--muted);line-height:1.6;border:1px solid var(--border);border-radius:6px;padding:10px}
+  .tot-table{width:100%;border-collapse:collapse}
+  .tot-table td{padding:5px 8px;font-size:13px;border-bottom:1px solid var(--border)}
+  .tot-table tr:last-child td{border-bottom:none}
+  .tot-table .lbl{color:var(--muted)}
+  .tot-table .val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .tot-table .grand-row td{background:var(--black);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;border-radius:4px}
+  .tot-table .grand-row .val{color:var(--green)}
+  .disclaimer{font-size:10px;color:var(--muted);line-height:1.5;padding:10px 0 0;border-top:1px solid var(--border);margin-top:12px}
+  /* freight info bubble */
+  .freight-note{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4}
+  /* LOT row */
+  .lot-row td{background:#faf5ff;font-style:italic}
+  @media print{
+    .toolbar,.summary-strip,.add-line-btn,.btn{display:none!important}
+    body{background:white}
+    .main{padding:0;max-width:100%}
+    header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .phase-block,.meta-panel,.billing-panel,.totals-panel{border-radius:0}
+    .tbl-wrap{overflow:visible}
+  }
+</style>
+</head>
+<body>
 
+<header>
+  <div class="header-inner">
+    <div style="display:flex;align-items:center;gap:14px">
+      <img class="logo-img" src="https://cdn.kicksdigital.com/cbmcinc.com/2019/11/cbmc-lighting-solutions-logo.png" alt="CBMC"/>
+      <div>
+        <div class="header-title">CBMC Quote Builder</div>
+        <div class="header-sub">5855 Kopetsky Dr, Suite G · Indianapolis IN 46217 · rthomson@cbmcinc.com · 317.780.8350</div>
+      </div>
+    </div>
+    <div class="header-badge">VOLUNTARY ALTERNATE-EQUAL · SUBMITTED SUBJECT TO APPROVAL</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="tlabel">Target Margin %</span>
+  <input type="number" id="globalMargin" value="30" min="0" max="99" step="0.5"/>
+  <div class="sep"></div>
+  <span class="tlabel">Part# Display</span>
+  <div class="toggle-group">
+    <button class="toggle-btn active" id="tog-dl" onclick="setPartDisplay('dl')">DL #</button>
+    <button class="toggle-btn" id="tog-cat" onclick="setPartDisplay('cat')">Catalog #</button>
+    <button class="toggle-btn" id="tog-both" onclick="setPartDisplay('both')">Both</button>
+  </div>
+  <div class="sep"></div>
+  <span class="tlabel">Bill As</span>
+  <div class="toggle-group">
+    <button class="toggle-btn active" id="tog-unit" onclick="setBillAs('unit')">Unit</button>
+    <button class="toggle-btn" id="tog-lot" onclick="setBillAs('lot')">Lot</button>
+  </div>
+  <div class="sep"></div>
+  <button class="btn btn-green" onclick="recalcAll()">⟳ Recalc</button>
+  <button class="btn btn-outline" onclick="exportCSV()">↓ CSV</button>
+  <button class="btn btn-dark" onclick="window.print()">⎙ Print</button>
+</div>
+
+<div class="summary-strip">
+  <div class="scard"><div class="sv" id="sFixtures">$0</div><div class="sl">Fixtures</div></div>
+  <div class="scard"><div class="sv" id="sFreight">$0</div><div class="sl">Freight Est.</div></div>
+  <div class="scard"><div class="sv" id="sTax">$0</div><div class="sl">Sales Tax</div></div>
+  <div class="scard"><div class="sv" id="sTotal">$0</div><div class="sl">Grand Total</div></div>
+  <div class="scard"><div class="sv" id="sGP">0%</div><div class="sl">Blended GP%</div></div>
+  <div class="scard"><div class="sv" id="sCost">$0</div><div class="sl">Total Cost</div></div>
+  <div class="scard"><div class="sv" id="sGPdol">$0</div><div class="sl">Gross Profit $</div></div>
+</div>
+
+<div class="main">
+
+  <!-- META -->
+  <div class="meta-panel">
+    <div class="meta-grid">
+      <div class="meta-field"><label>Customer / Job</label><input type="text" id="customer" value="SourceBlue, LLC : Vantage VDC GA-21"/></div>
+      <div class="meta-field"><label>Quote #</label><input type="text" id="quoteNum" value="66411"/></div>
+      <div class="meta-field"><label>Revision</label><input type="text" id="revision" value="ADD#4 - BOM SPECS"/></div>
+      <div class="meta-field"><label>Date</label><input type="text" id="qdate" value="12/11/2025"/></div>
+      <div class="meta-field"><label>Expires</label><input type="text" id="qexpire" value="1/10/2026"/></div>
+      <div class="meta-field"><label>Sales Rep</label><input type="text" value="Rob Thomson"/></div>
+      <div class="meta-field"><label>Project Manager</label><input type="text" value="Carinne Atkerson"/></div>
+      <div class="meta-field"><label>Ship-To State</label>
+        <select id="shipState" onchange="lookupTaxRate()">
+          <option value="">— Select State —</option>
+          <option value="GA" data-rate="8.9" selected>Georgia (GA)</option>
+          <option value="IN" data-rate="7.0">Indiana (IN)</option>
+          <option value="OH" data-rate="7.25">Ohio (OH)</option>
+          <option value="IL" data-rate="8.0">Illinois (IL)</option>
+          <option value="TN" data-rate="9.55">Tennessee (TN)</option>
+          <option value="FL" data-rate="7.0">Florida (FL)</option>
+          <option value="TX" data-rate="8.25">Texas (TX)</option>
+          <option value="NC" data-rate="7.0">North Carolina (NC)</option>
+          <option value="VA" data-rate="5.3">Virginia (VA)</option>
+          <option value="NY" data-rate="8.875">New York (NY)</option>
+          <option value="CA" data-rate="10.25">California (CA)</option>
+          <option value="AZ" data-rate="8.37">Arizona (AZ)</option>
+          <option value="CO" data-rate="7.65">Colorado (CO)</option>
+          <option value="PA" data-rate="6.0">Pennsylvania (PA)</option>
+          <option value="MN" data-rate="7.875">Minnesota (MN)</option>
+          <option value="WI" data-rate="5.5">Wisconsin (WI)</option>
+          <option value="MI" data-rate="6.0">Michigan (MI)</option>
+          <option value="NJ" data-rate="6.625">New Jersey (NJ)</option>
+          <option value="MA" data-rate="6.25">Massachusetts (MA)</option>
+          <option value="WA" data-rate="10.1">Washington (WA)</option>
+          <option value="TAX_EXEMPT">Tax Exempt (0%)</option>
+          <option value="CUSTOM">Custom Rate…</option>
+        </select>
+      </div>
+      <div class="meta-field"><label>Tax Rate %</label><input type="number" id="taxRate" value="8.9" min="0" max="20" step="0.01" oninput="recalcAll()"/></div>
+      <div class="meta-field"><label>Apply Tax To</label>
+        <select id="taxApply" onchange="recalcAll()">
+          <option value="all">All (Fixtures + Freight)</option>
+          <option value="fixtures" selected>Fixtures Only</option>
+          <option value="none">None (Tax Exempt)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- FREIGHT & BILLING OPTIONS -->
+  <div class="billing-panel">
+    <div class="billing-title">Freight &amp; Billing Settings</div>
+    <div class="billing-grid">
+      <div class="billing-field">
+        <label>Freight Method</label>
+        <select id="freightMethod" onchange="recalcAll()">
+          <option value="factory_paid">Factory Paid (FOB Factory, orders at min)</option>
+          <option value="pct">Estimate % of Material Cost</option>
+          <option value="flat">Flat Amount</option>
+          <option value="ltl_std">LTL Standard (4% of material)</option>
+          <option value="none">No Freight Shown</option>
+        </select>
+        <div class="freight-note">Most factories: freight included on orders ≥ $2,500–$5,000 per factory. LTL industry standard: 3–5% of material.</div>
+      </div>
+      <div class="billing-field">
+        <label>Freight % (if % method)</label>
+        <input type="number" id="freightPct" value="4" min="0" max="20" step="0.5" oninput="recalcAll()"/>
+      </div>
+      <div class="billing-field">
+        <label>Flat Freight $ (if flat)</label>
+        <input type="number" id="freightFlat" value="0" min="0" step="100" oninput="recalcAll()"/>
+      </div>
+      <div class="billing-field">
+        <label>Jobsite Delivery / Drayage $</label>
+        <input type="number" id="drayage" value="0" min="0" step="100" oninput="recalcAll()"/>
+        <div class="freight-note">Inside delivery, lift gate, or site logistics add-on.</div>
+      </div>
+      <div class="billing-field">
+        <label>Handling / Admin Fee $</label>
+        <input type="number" id="handling" value="0" min="0" step="50" oninput="recalcAll()"/>
+      </div>
+      <div class="billing-field">
+        <label>Credit Card Surcharge</label>
+        <select id="ccSurcharge" onchange="recalcAll()">
+          <option value="0">None</option>
+          <option value="3">3% (CC payment)</option>
+        </select>
+        <div class="freight-note">Per CBMC terms: +3% for credit card orders.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="phaseContainer"></div>
+
+  <!-- TOTALS -->
+  <div class="totals-panel">
+    <div class="totals-grid">
+      <div class="terms-box">
+        <strong>Terms &amp; Conditions</strong><br/>
+        Pricing based on specified quantities and materials; changes require a revised quote.
+        Valid 30 days; orders must release within 60 days unless noted.
+        Prices exclude lamps, spare materials, fuses, special finishes, mounting, installation, and taxes unless noted.
+        Customer responsible for counts, lamp color, voltage, fixture colors, and pole color.
+        Unit pricing based on entire BOM — cannot be used piecemeal unless entire BOM is purchased.
+        5% material overage included in total quantity and pricing; unused portion may be credited at project closeout.
+        Fixture pricing can be held until January 31, 2026 with a Hold For Release PO.
+        <strong>ALL QUOTATIONS SUBJECT TO CHANGE AT ANY TIME DUE TO TARIFF PRICE ADJUSTMENTS.</strong><br/><br/>
+        <em>Orders placed via credit card incur an additional 3% processing charge. All orders require a PO, approved credit or advance payment, and a project information sheet.</em>
+      </div>
+      <div>
+        <table class="tot-table">
+          <tr><td class="lbl">Phase 1 Fixtures</td><td class="val" id="ft1">—</td></tr>
+          <tr><td class="lbl">Phase 2 Fixtures</td><td class="val" id="ft2">—</td></tr>
+          <tr><td class="lbl">Phase 3 Fixtures</td><td class="val" id="ft3">—</td></tr>
+          <tr><td class="lbl" style="padding-top:10px">Fixture Subtotal</td><td class="val" id="ftFixtures">—</td></tr>
+          <tr><td class="lbl">Freight &amp; Delivery</td><td class="val" id="ftFreight">—</td></tr>
+          <tr><td class="lbl">Handling / Admin</td><td class="val" id="ftHandling">—</td></tr>
+          <tr><td class="lbl">Sales Tax (<span id="taxRateLabel">0</span>%)</td><td class="val" id="ftTax">—</td></tr>
+          <tr><td class="lbl">Credit Card Surcharge</td><td class="val" id="ftCC">—</td></tr>
+          <tr><td class="lbl" style="padding-top:8px;font-weight:700">Est. Total Cost (CBMC)</td><td class="val" id="ftCost">—</td></tr>
+          <tr><td class="lbl">Est. Gross Profit</td><td class="val" id="ftGPdol">—</td></tr>
+          <tr><td class="lbl">Blended GP%</td><td class="val" id="ftGPpct">—</td></tr>
+          <tr class="grand-row"><td>TOTAL</td><td class="val" id="ftTotal">—</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="disclaimer">
+      *** CBMC Lighting Solutions · 5855 Kopetsky Drive, Suite G, Indianapolis IN 46217 · rthomson@cbmcinc.com · Office 317.780.8350 · Cell 317.828.4119 ***<br/>
+      Quotes and resulting Orders are subject to the latest CBMC, Inc. Terms and Conditions as stated on www.cbmcinc.com. Buyer acknowledges that it has read and agrees to those Terms and Conditions and agrees that, without exception, those Terms and Conditions apply to any Order placed as a result of or tracing to any CBMC Quotation. Sales tax will be invoiced based on the ship-to location unless a tax-exempt certificate is provided.
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+let partDisplay = 'dl';   // 'dl' | 'cat' | 'both'
+let billAs = 'unit';       // 'unit' | 'lot'
+
+// ─── PHASE DATA ───────────────────────────────────────────────────────────────
+const PHASES = [
+  { id:1, title:'PHASE 1 LIGHTING BOM',
+    subtitle:'LEVELS 1 & 2 — Lighting and Lighting Controls (switches by others)',
+    lines:[
+      {qty:83,  type:'A - LEVEL 1',    cat:'MPS4-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197801', cost:65.00,   sell:95.71},
+      {qty:66,  type:'A - LEVEL 2',    cat:'MPS4-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197801', cost:65.00,   sell:95.71},
+      {qty:2,   type:'A4 - LEVEL 1',   cat:'MPS4-50LW-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197802', cost:63.00,   sell:91.43},
+      {qty:1,   type:'A4 - LEVEL 2',   cat:'MPS4-50LW-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197802', cost:63.00,   sell:91.43},
+      {qty:11,  type:'BL - LEVEL 1',   cat:'ABC1010589DQV23KQW',                              vendor:'HLI Solutions Inc',           desc:"4' LED HIGH BAY",                      dl:'DL201349', cost:98.00,   sell:140.00},
+      {qty:3,   type:'BL - LEVEL 2',   cat:'ABC1010589DQV23KQW',                              vendor:'HLI Solutions Inc',           desc:"4' LED HIGH BAY",                      dl:'DL201349', cost:98.00,   sell:140.00},
+      {qty:20,  type:'C - LEVEL 1',    cat:'CRW4-LSCS',                                      vendor:'Hubbell - Columbia Lighting', desc:'4FT LED Round Wrap, Switchable CCT',   dl:'DL159457', cost:70.00,   sell:131.43},
+      {qty:20,  type:'C - LEVEL 2',    cat:'CRW4-LSCS',                                      vendor:'Hubbell - Columbia Lighting', desc:'4FT LED Round Wrap, Switchable CCT',   dl:'DL159457', cost:70.00,   sell:131.43},
+      {qty:20,  type:'C - ROOF',       cat:'CRW4-LSCS',                                      vendor:'Hubbell - Columbia Lighting', desc:'4FT LED Round Wrap, Switchable CCT',   dl:'DL159457', cost:70.00,   sell:131.43},
+      {qty:97,  type:'C1 - LEVEL 1',   cat:'MPS8-50VW-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197804', cost:106.00,  sell:170.00},
+      {qty:97,  type:'C1 - LEVEL 2',   cat:'MPS8-50VW-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197804', cost:106.00,  sell:170.00},
+      {qty:16,  type:'CH - LEVEL 1',   cat:'LXEM-4-50HL-RFA-EDU',                            vendor:'HLI Solutions Inc',           desc:"4' ENCLOSED AND GASKETED LED",         dl:'DL201350', cost:126.00,  sell:180.00},
+      {qty:2,   type:'CH - LEVEL 2',   cat:'LXEM-4-50HL-RFA-EDU',                            vendor:'HLI Solutions Inc',           desc:"4' ENCLOSED AND GASKETED LED",         dl:'DL201350', cost:126.00,  sell:180.00},
+      {qty:83,  type:'CH - ROOF',      cat:'LXEM-4-50HL-RFA-EDU',                            vendor:'HLI Solutions Inc',           desc:"4' ENCLOSED AND GASKETED LED",         dl:'DL201350', cost:126.00,  sell:180.00},
+      {qty:35,  type:'DM - LEVEL 1',   cat:'MPS4-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197801', cost:65.00,   sell:95.71},
+      {qty:36,  type:'DM - LEVEL 2',   cat:'MPS4-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:'LENSED STRIPLIGHT',                    dl:'DL197801', cost:65.00,   sell:95.71},
+      {qty:36,  type:'DM2 - LEVEL 1',  cat:'MPS8-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197806', cost:116.00,  sell:178.57},
+      {qty:36,  type:'DM2 - LEVEL 2',  cat:'MPS8-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197806', cost:116.00,  sell:178.57},
+      {qty:32,  type:'DM2H - LEVEL 1', cat:'MPS8-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197806', cost:116.00,  sell:178.57},
+      {qty:32,  type:'DM2H - LEVEL 2', cat:'MPS8-50VL-CW-EDU',                               vendor:'HLI Solutions Inc',           desc:"8' LENSED STRIP",                      dl:'DL197806', cost:116.00,  sell:178.57},
+      {qty:40,  type:'F - LEVEL 1',    cat:'LCAT22-9-35-MW-G-R-ED1-U',                       vendor:'Columbia Lighting - HLI',    desc:'2X2 LED TROFFER',                      dl:'DL201351', cost:64.00,   sell:91.43},
+      {qty:179, type:'F - LEVEL 2',    cat:'LCAT22-9-35-MW-G-R-ED1-U',                       vendor:'Columbia Lighting - HLI',    desc:'2X2 LED TROFFER',                      dl:'DL201351', cost:64.00,   sell:91.43},
+      {qty:28,  type:'J - LEVEL 1',    cat:'LFR-4RD-M-20L-35K-9-MD-DM1',                    vendor:'Columbia Lighting - HLI',    desc:'4" LED DOWNLIGHT',                     dl:'DL201353', cost:115.00,  sell:164.29},
+      {qty:18,  type:'J - LEVEL 2',    cat:'LFR-4RD-M-20L-35K-9-MD-DM1',                    vendor:'Columbia Lighting - HLI',    desc:'4" LED DOWNLIGHT',                     dl:'DL201353', cost:115.00,  sell:164.29},
+      {qty:3,   type:'J7 - PHASE 1',   cat:'LFR-6RD-M-20L-35K-9-MD-DM1-DTS',                vendor:'Columbia Lighting - HLI',    desc:'6" LED DOWNLIGHT',                     dl:'DL201354', cost:235.00,  sell:335.71},
+      {qty:2,   type:'K2 - LEVEL 1',   cat:'LIGHTING SALE',                                   vendor:'—',                          desc:'CUSTOM LINEAR PENDANT (2 FIXTURES)',   dl:'DLSALE',   cost:23656.00, sell:33794.29, isLot:true},
+      {qty:10,  type:'L4 - LEVEL 1',   cat:'4L-P-D-4-04-SOF-C1-35K9-D080-D01-1C-UNV-FA1',  vendor:'HLI Solutions Inc',           desc:"4' ARCHITECTURAL LINEAR",              dl:'DL197814', cost:248.00,  sell:354.29},
+      {qty:7,   type:'L6 - LEVEL 2',   cat:'4L-P-D-6-06-SOF-C1-35K9-D080-D01-1C-UNV-FA1',  vendor:'HLI Solutions Inc',           desc:"6' ARCHITECTURAL LINEAR",              dl:'DL197815', cost:372.00,  sell:531.43},
+      {qty:4,   type:'L6 - LEVEL 2',   cat:'4L-P-D-6-06-SOF-C1-35K9-D080-D01-1C-UNV-FA1',  vendor:'HLI Solutions Inc',           desc:"6' ARCHITECTURAL LINEAR",              dl:'DL197815', cost:372.00,  sell:531.43},
+      {qty:4,   type:'N',              cat:'VT-14L-KFS',                                      vendor:'Best Lighting Products',     desc:"4' LED Vaportight - 14K Lumens",       dl:'DL171392', cost:150.00,  sell:215.00},
+      {qty:24,  type:'S3 - LEVEL 1',   cat:'VPW-2-48L-30-4K8-4W-UNV-BLT-PC',                vendor:'Columbia Lighting - HLI',    desc:'WALL SCONCE W/PHOTOCELL',              dl:'DL201356', cost:240.00,  sell:342.86},
+      {qty:24,  type:'S3 - LEVEL 2',   cat:'VPW-2-48L-30-4K8-4W-UNV-BLT-PC',                vendor:'Columbia Lighting - HLI',    desc:'WALL SCONCE W/PHOTOCELL',              dl:'DL201356', cost:240.00,  sell:342.86},
+      {qty:45,  type:'EXIT - LEVEL 1', cat:'RELZXTE2RCA',                                    vendor:'Best Lighting Products',     desc:'EDGELIT EXIT, RED, DOUBLE FACE',       dl:'DL193116', cost:50.75,   sell:72.50},
+      {qty:41,  type:'EXIT - LEVEL 2', cat:'RELZXTE2RCA',                                    vendor:'Best Lighting Products',     desc:'EDGELIT EXIT, RED, DOUBLE FACE',       dl:'DL193116', cost:50.75,   sell:72.50},
+      {qty:1,   type:'W - LEVEL 1',    cat:'VPW-3-160L-70-4K8-4F-UNV-BLT',                  vendor:'HLI Solutions Inc',           desc:'WALL SCONCE',                          dl:'DL197812', cost:345.00,  sell:528.57},
+      {qty:11,  type:'W - LEVEL 2',    cat:'VPW-3-160L-70-4K8-4F-UNV-BLT',                  vendor:'HLI Solutions Inc',           desc:'WALL SCONCE',                          dl:'DL197812', cost:345.00,  sell:528.57},
+      {qty:46,  type:'W - ROOF',       cat:'VPW-3-160L-70-4K8-4F-UNV-BLT',                  vendor:'HLI Solutions Inc',           desc:'WALL SCONCE',                          dl:'DL197812', cost:345.00,  sell:528.57},
+      {qty:56,  type:'W - SITE',       cat:'VPW-3-160L-70-4K8-4F-UNV-BLT',                  vendor:'HLI Solutions Inc',           desc:'WALL SCONCE',                          dl:'DL197812', cost:345.00,  sell:528.57},
+      {qty:142, type:'S2 - SITE',      cat:'ASL1-160L-135-4K7-4W-UNV-A-BLT-7PR-RARBC160L',  vendor:'Columbia Lighting - HLI',    desc:'AREA LIGHT WITH SPILL ELIMINATOR',     dl:'DL201448', cost:366.00,  sell:600.00},
+      {qty:114, type:'S2 POLES',       cat:'5SQB3 S11G 20 S BRZ 5BC',                        vendor:'LSI Lighting Solutions Plus',desc:"5\" SQ POLE 20' BRONZE W/ANCHOR BOLTS",dl:'DL162028', cost:712.00,  sell:1017.14},
+      {qty:14,  type:'S7',             cat:'PA7S-FT-NU3-12L-010-4K8-42A-UNV',                vendor:'Kim Lighting',               desc:'LED BOLLARD LIGHT (70 CRI)',           dl:'DL202196', cost:890.00,  sell:1272.00},
+      {qty:1,   type:'INVERTERS',      cat:'LOT SALE PRICE',                                  vendor:'—',                          desc:'32 KW INVERTERS',                      dl:'DL126518', cost:136411.00,sell:225111.83, isLot:true},
+      {qty:1,   type:'CONTROLS',       cat:'LOT SALE PRICE',                                  vendor:'—',                          desc:'LIGHTING CONTROLS',                    dl:'DL126518', cost:23022.52, sell:19299.92,  isLot:true},
+    ],
+    allowances:[
+      {desc:'FEES FOR TEXTURA-CPM PAYMENT MANAGEMENT SYSTEM',  sell:5000.00},
+      {desc:'DISTRIBUTION/STORAGE — PHASE 1 ONLY',             sell:60000.00},
+      {desc:'ATTIC STOCK AS PER SPECS — ALLOWANCE',            sell:40000.00},
+      {desc:'ALLOCATION TO HOLD PRICING UNTIL JANUARY 31, 2026', sell:45500.00},
+    ]
+  },
+  { id:2, title:'PHASE 2 LIGHTING BOM', subtitle:'', allowances:[],
+    lines:[
+      {qty:1,  type:'A4 - LEVEL 1',   cat:'MPS4-50LW-CW-EDU',                  vendor:'HLI Solutions Inc',         desc:'LENSED STRIPLIGHT',              dl:'DL197802', cost:64.00,  sell:91.43},
+      {qty:1,  type:'A4 - LEVEL 2',   cat:'MPS4-50LW-CW-EDU',                  vendor:'HLI Solutions Inc',         desc:'LENSED STRIPLIGHT',              dl:'DL197802', cost:63.00,  sell:91.43},
+      {qty:19, type:'BL - LEVEL 1',   cat:'ABC1010589DQV23KQW',                 vendor:'HLI Solutions Inc',         desc:"4' LED HIGH BAY",                dl:'DL201349', cost:98.00,  sell:140.00},
+      {qty:19, type:'BL - LEVEL 2',   cat:'ABC1010589DQV23KQW',                 vendor:'HLI Solutions Inc',         desc:"4' LED HIGH BAY",                dl:'DL201349', cost:98.00,  sell:140.00},
+      {qty:1,  type:'C1 - LEVEL 2',   cat:'MPS8-50VW-CW-EDU',                  vendor:'HLI Solutions Inc',         desc:"8' LENSED STRIP",                dl:'DL197804', cost:106.00, sell:170.00},
+      {qty:8,  type:'CH - LEVEL 1',   cat:'LXEM-4-50HL-RFA-EDU',               vendor:'HLI Solutions Inc',         desc:"4' ENCLOSED AND GASKETED LED",   dl:'DL201350', cost:126.00, sell:180.00},
+      {qty:42, type:'CH - ROOF',      cat:'LXEM-4-50HL-RFA-EDU',               vendor:'HLI Solutions Inc',         desc:"4' ENCLOSED AND GASKETED LED",   dl:'DL201350', cost:126.00, sell:180.00},
+      {qty:4,  type:'J - LEVEL 1',    cat:'LFR-4RD-M-20L-35K-9-MD-DM1',       vendor:'Columbia Lighting - HLI',  desc:'4" LED DOWNLIGHT',               dl:'DL201353', cost:115.00, sell:164.29},
+      {qty:2,  type:'J - LEVEL 2',    cat:'LFR-4RD-M-20L-35K-9-MD-DM1',       vendor:'Columbia Lighting - HLI',  desc:'4" LED DOWNLIGHT',               dl:'DL201353', cost:115.00, sell:164.29},
+      {qty:19, type:'EXIT - LEVEL 1', cat:'RELZXTE2RCA',                        vendor:'Best Lighting Products',   desc:'EDGELIT EXIT, RED, DOUBLE FACE', dl:'DL193116', cost:50.75,  sell:72.50},
+      {qty:19, type:'EXIT - LEVEL 2', cat:'RELZXTE2RCA',                        vendor:'Best Lighting Products',   desc:'EDGELIT EXIT, RED, DOUBLE FACE', dl:'DL193116', cost:50.75,  sell:72.50},
+      {qty:6,  type:'W - LEVEL 2',    cat:'VPW-3-160L-70-4K8-4F-UNV-BLT',     vendor:'HLI Solutions Inc',         desc:'WALL SCONCE',                    dl:'DL197812', cost:345.00, sell:492.86},
+    ]
+  },
+  { id:3, title:'PHASE 3 LIGHTING BOM', subtitle:'', allowances:[],
+    lines:[
+      {qty:7,  type:'A - LEVEL 1',    cat:'MPS4-50VL-CW-EDU',              vendor:'HLI Solutions Inc',        desc:'LENSED STRIPLIGHT',              dl:'DL197801', cost:65.00,  sell:92.86},
+      {qty:39, type:'BL - LEVEL 1',   cat:'ABC1010589DQV23KQW',             vendor:'HLI Solutions Inc',        desc:"4' LED HIGH BAY",                dl:'DL201349', cost:98.00,  sell:140.00},
+      {qty:41, type:'BL - LEVEL 2',   cat:'ABC1010589DQV23KQW',             vendor:'HLI Solutions Inc',        desc:"4' LED HIGH BAY",                dl:'DL201349', cost:98.00,  sell:140.00},
+      {qty:14, type:'C1 - LEVEL 1',   cat:'MPS8-50VW-CW-EDU',              vendor:'HLI Solutions Inc',        desc:"8' LENSED STRIP",                dl:'DL197804', cost:106.00, sell:151.43},
+      {qty:13, type:'C1 - LEVEL 2',   cat:'MPS8-50VW-CW-EDU',              vendor:'HLI Solutions Inc',        desc:"8' LENSED STRIP",                dl:'DL197804', cost:106.00, sell:170.00},
+      {qty:7,  type:'CH - LEVEL 1',   cat:'LXEM-4-50HL-RFA-EDU',           vendor:'HLI Solutions Inc',        desc:"4' ENCLOSED AND GASKETED LED",   dl:'DL201350', cost:126.00, sell:180.00},
+      {qty:42, type:'CH - ROOF',      cat:'LXEM-4-50HL-RFA-EDU',           vendor:'HLI Solutions Inc',        desc:"4' ENCLOSED AND GASKETED LED",   dl:'DL201350', cost:126.00, sell:180.00},
+      {qty:35, type:'F - LEVEL 1',    cat:'LCAT22-9-35-MW-G-R-ED1-U',      vendor:'Columbia Lighting - HLI', desc:'2X2 LED TROFFER',                dl:'DL201351', cost:64.00,  sell:91.43},
+      {qty:49, type:'F - LEVEL 2',    cat:'LCAT22-9-35-MW-G-R-ED1-U',      vendor:'Columbia Lighting - HLI', desc:'2X2 LED TROFFER',                dl:'DL201351', cost:64.00,  sell:91.43},
+      {qty:23, type:'EXIT - LEVEL 1', cat:'RELZXTE2RCA',                    vendor:'Best Lighting Products',  desc:'EDGELIT EXIT, RED, DOUBLE FACE', dl:'DL193116', cost:50.75,  sell:72.50},
+      {qty:23, type:'EXIT - LEVEL 2', cat:'RELZXTE2RCA',                    vendor:'Best Lighting Products',  desc:'EDGELIT EXIT, RED, DOUBLE FACE', dl:'DL193116', cost:50.75,  sell:72.50},
+      {qty:2,  type:'W - LEVEL 1',    cat:'VPW-3-160L-70-4K8-4F-UNV-BLT', vendor:'HLI Solutions Inc',        desc:'WALL SCONCE',                    dl:'DL197812', cost:345.00, sell:528.57},
+      {qty:6,  type:'W - LEVEL 2',    cat:'VPW-3-160L-70-4K8-4F-UNV-BLT', vendor:'HLI Solutions Inc',        desc:'WALL SCONCE',                    dl:'DL197812', cost:345.00, sell:528.57},
+      {qty:5,  type:'W - ROOF',       cat:'VPW-3-160L-70-4K8-4F-UNV-BLT', vendor:'HLI Solutions Inc',        desc:'WALL SCONCE',                    dl:'DL197812', cost:345.00, sell:492.86},
+    ]
+  }
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const state = PHASES.map(ph => ph.lines.map(l => ({qty:l.qty, cost:l.cost, sell:l.sell})));
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const fmt = n => isFinite(n) ? n.toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}) : '—';
+const fmtPct = n => isFinite(n) ? (n*100).toFixed(1)+'%' : '—';
+const fmtPctRaw = n => isFinite(n) ? n.toFixed(1)+'%' : '—';
+const gpClass = gp => gp >= 0.30 ? 'gp-good' : gp >= 0.20 ? 'gp-warn' : 'gp-bad';
+
+function partCell(line) {
+  if (partDisplay === 'dl')   return `<span class="dl-tag">${line.dl}</span>`;
+  if (partDisplay === 'cat')  return `<small style="font-size:10px;color:var(--muted)">${line.cat}</small>`;
+  return `<span class="dl-tag">${line.dl}</span><br/><small style="font-size:10px;color:var(--muted)">${line.cat}</small>`;
+}
+
+// ─── TOGGLES ─────────────────────────────────────────────────────────────────
+function setPartDisplay(v) {
+  partDisplay = v;
+  ['dl','cat','both'].forEach(x => $('tog-'+x).classList.toggle('active', x===v));
+  rebuildAll();
+}
+function setBillAs(v) {
+  billAs = v;
+  ['unit','lot'].forEach(x => $('tog-'+x).classList.toggle('active', x===v));
+  rebuildAll();
+}
+
+// ─── TAX LOOKUP ──────────────────────────────────────────────────────────────
+function lookupTaxRate() {
+  const sel = $('shipState');
+  const opt = sel.options[sel.selectedIndex];
+  const rate = parseFloat(opt.dataset.rate);
+  if (sel.value === 'TAX_EXEMPT') { $('taxRate').value = 0; $('taxApply').value = 'none'; }
+  else if (sel.value === 'CUSTOM') { $('taxRate').focus(); return; }
+  else if (!isNaN(rate)) { $('taxRate').value = rate; $('taxApply').value = 'fixtures'; }
+  recalcAll();
+}
+
+// ─── BUILD UI ─────────────────────────────────────────────────────────────────
+function buildUI() {
+  const container = $('phaseContainer');
+  container.innerHTML = '';
+  PHASES.forEach((phase, pi) => {
+    const block = document.createElement('div');
+    block.className = 'phase-block';
+    block.id = `phase-${phase.id}`;
+    block.innerHTML = `
+      <div class="phase-header" onclick="togglePhase(${pi})">
+        <div class="phase-header-left">
+          <div class="phase-num">${phase.id}</div>
+          <div>
+            <div class="phase-title">${phase.title}</div>
+            ${phase.subtitle ? `<div style="font-size:11px;color:var(--muted);margin-top:1px">${phase.subtitle}</div>` : ''}
+          </div>
+        </div>
+        <div class="phase-totals">
+          <div class="ptot"><div class="pv" id="p-sell-${pi}">—</div><div class="pl">Sell</div></div>
+          <div class="ptot"><div class="pv" id="p-cost-${pi}">—</div><div class="pl">Cost</div></div>
+          <div class="ptot"><span class="gp-pill" id="p-gp-${pi}">—</span></div>
+          <div style="font-size:18px;color:var(--muted)" id="chev-${pi}">▾</div>
+        </div>
+      </div>
+      <div class="tbl-wrap" id="phase-body-${pi}">
+        <table>
+          <thead><tr>
+            <th>Qty</th><th>Type</th><th>Part #</th><th>Description</th><th>Vendor</th>
+            <th class="r">Unit Cost</th><th class="r">Unit Sell</th>
+            <th class="r">GP%</th><th class="r">Ext Cost</th><th class="r">Ext Sell</th><th class="r">GP $</th>
+          </tr></thead>
+          <tbody id="tbody-${pi}"></tbody>
+        </table>
+        <div style="padding:6px 12px;background:#f8fafc;border-top:1px solid var(--border)">
+          <button class="add-line-btn" onclick="addLine(${pi})">+ Add Line</button>
+        </div>
+      </div>`;
+    container.appendChild(block);
+  });
+  rebuildAll();
+}
+
+function rebuildAll() {
+  PHASES.forEach((_, pi) => renderPhaseRows(pi));
+  recalcAll();
+}
+
+function renderPhaseRows(pi) {
+  const phase = PHASES[pi];
+  const tbody = $(`tbody-${pi}`);
+  let html = '';
+  phase.lines.forEach((line, li) => {
+    const s = state[pi][li];
+    const isLot = line.isLot || billAs === 'lot';
+    const extCost = s.qty * s.cost;
+    const extSell = s.qty * s.sell;
+    const gp = s.sell > 0 ? (s.sell - s.cost) / s.sell : 0;
+    const rowClass = isLot ? 'lot-row' : '';
+    html += `<tr class="${rowClass}">
+      <td><input class="qty-input" type="number" value="${s.qty}" min="0" onchange="updateQty(${pi},${li},this.value)"/></td>
+      <td><span class="type-badge">${line.type}</span>${isLot ? ' <span style="font-size:10px;color:#7c3aed;font-weight:700">LOT</span>' : ''}</td>
+      <td>${partCell(line)}</td>
+      <td style="max-width:200px">${line.desc}</td>
+      <td style="font-size:11px;color:var(--muted)">${line.vendor}</td>
+      <td class="r"><input class="cost-input" id="cost-${pi}-${li}" type="number" value="${s.cost.toFixed(2)}" step="0.01" min="0" onchange="updateCost(${pi},${li},this.value)"/></td>
+      <td class="r"><input class="cost-input" id="sell-${pi}-${li}" type="number" value="${s.sell.toFixed(2)}" step="0.01" min="0" onchange="updateSell(${pi},${li},this.value)"/></td>
+      <td class="r" id="gp-${pi}-${li}"><span class="gp-pill ${gpClass(gp)}">${fmtPct(gp)}</span></td>
+      <td class="r" id="ec-${pi}-${li}">${fmt(extCost)}</td>
+      <td class="r" id="es-${pi}-${li}">${fmt(extSell)}</td>
+      <td class="r" id="gd-${pi}-${li}">${fmt(extSell-extCost)}</td>
+    </tr>`;
+  });
+
+  if (phase.allowances && phase.allowances.length) {
+    html += `<tr class="section-row"><td colspan="11">ALLOWANCES — PHASE ${phase.id}</td></tr>`;
+    phase.allowances.forEach(a => {
+      html += `<tr class="allowance-row">
+        <td>1</td><td colspan="2">ALLOWANCE</td><td colspan="2">${a.desc}</td>
+        <td class="r">—</td><td class="r">${fmt(a.sell)}</td>
+        <td class="r">100%</td><td class="r">—</td><td class="r">${fmt(a.sell)}</td><td class="r">${fmt(a.sell)}</td>
+      </tr>`;
+    });
+  }
+  tbody.innerHTML = html;
+}
+
+// ─── UPDATE HANDLERS ─────────────────────────────────────────────────────────
+function updateQty(pi, li, v) {
+  state[pi][li].qty = Math.max(0, parseFloat(v)||0);
+  updateLineCalcs(pi, li); recalcTotals();
+}
+function updateCost(pi, li, v) {
+  const cost = Math.max(0, parseFloat(v)||0);
+  state[pi][li].cost = cost;
+  const m = parseFloat($('globalMargin').value)/100;
+  if (m > 0 && m < 1) { state[pi][li].sell = cost/(1-m); const el=$(`sell-${pi}-${li}`); if(el){el.value=state[pi][li].sell.toFixed(2);el.classList.add('modified');} }
+  $(`cost-${pi}-${li}`).classList.add('modified');
+  updateLineCalcs(pi, li); recalcTotals();
+}
+function updateSell(pi, li, v) {
+  state[pi][li].sell = Math.max(0, parseFloat(v)||0);
+  $(`sell-${pi}-${li}`).classList.add('modified');
+  updateLineCalcs(pi, li); recalcTotals();
+}
+function updateLineCalcs(pi, li) {
+  const s = state[pi][li];
+  const extCost = s.qty*s.cost, extSell = s.qty*s.sell;
+  const gp = s.sell>0?(s.sell-s.cost)/s.sell:0;
+  const g=$(`gp-${pi}-${li}`),ec=$(`ec-${pi}-${li}`),es=$(`es-${pi}-${li}`),gd=$(`gd-${pi}-${li}`);
+  if(g) g.innerHTML=`<span class="gp-pill ${gpClass(gp)}">${fmtPct(gp)}</span>`;
+  if(ec) ec.textContent=fmt(extCost);
+  if(es) es.textContent=fmt(extSell);
+  if(gd) gd.textContent=fmt(extSell-extCost);
+}
+
+function applyGlobalMargin() {
+  const m = parseFloat($('globalMargin').value)/100;
+  if(!isFinite(m)||m<=0||m>=1) return;
+  PHASES.forEach((_,pi)=>PHASES[pi].lines.forEach((_,li)=>{
+    const c=state[pi][li].cost;
+    state[pi][li].sell=c/(1-m);
+    const el=$(`sell-${pi}-${li}`);
+    if(el){el.value=state[pi][li].sell.toFixed(2);el.classList.remove('modified');}
+    updateLineCalcs(pi,li);
+  }));
+  recalcTotals();
+}
+
+// ─── TOTALS ───────────────────────────────────────────────────────────────────
+function recalcTotals() {
+  let grandCost=0, grandSell=0;
+  const phaseSells=[];
+
+  PHASES.forEach((phase,pi)=>{
+    let pCost=0, pSell=0;
+    state[pi].forEach(s=>{pCost+=s.qty*s.cost; pSell+=s.qty*s.sell;});
+    const allowSell=(phase.allowances||[]).reduce((s,a)=>s+a.sell,0);
+    pSell+=allowSell;
+    phaseSells.push(pSell);
+    const gp=pSell>0?(pSell-pCost)/pSell:0;
+    const gpEl=$(`p-gp-${pi}`); if(gpEl){gpEl.textContent=fmtPct(gp);gpEl.className=`gp-pill ${gpClass(gp)}`;}
+    const seEl=$(`p-sell-${pi}`); if(seEl) seEl.textContent=fmt(pSell);
+    const coEl=$(`p-cost-${pi}`); if(coEl) coEl.textContent=fmt(pCost);
+    grandCost+=pCost; grandSell+=pSell;
+    const ftEl=$(`ft${phase.id}`); if(ftEl) ftEl.textContent=fmt(pSell);
+  });
+
+  // Freight calc
+  const fMethod=$('freightMethod').value;
+  const fPct=parseFloat($('freightPct').value)/100||0.04;
+  const fFlat=parseFloat($('freightFlat').value)||0;
+  const drayage=parseFloat($('drayage').value)||0;
+  const handling=parseFloat($('handling').value)||0;
+  let freight=0;
+  if(fMethod==='pct') freight=grandSell*fPct;
+  else if(fMethod==='ltl_std') freight=grandSell*0.04;
+  else if(fMethod==='flat') freight=fFlat;
+  // factory_paid and none = 0
+  freight+=drayage;
+
+  // Tax calc
+  const taxRate=parseFloat($('taxRate').value)/100||0;
+  const taxApply=$('taxApply').value;
+  let taxBase=0;
+  if(taxApply==='all') taxBase=grandSell+freight+handling;
+  else if(taxApply==='fixtures') taxBase=grandSell;
+  const tax=taxBase*taxRate;
+
+  // CC surcharge
+  const ccPct=parseFloat($('ccSurcharge').value)/100||0;
+  const ccBase=grandSell+freight+handling+tax;
+  const cc=ccBase*ccPct;
+
+  const grandTotal=grandSell+freight+handling+tax+cc;
+  const grandGP=grandSell>0?(grandSell-grandCost)/grandSell:0;
+
+  // Strip
+  $('sFixtures').textContent=fmt(grandSell);
+  $('sFreight').textContent=fmt(freight+handling);
+  $('sTax').textContent=fmt(tax);
+  $('sTotal').textContent=fmt(grandTotal);
+  $('sGP').textContent=fmtPct(grandGP);
+  $('sCost').textContent=fmt(grandCost);
+  $('sGPdol').textContent=fmt(grandSell-grandCost);
+
+  // Footer table
+  $('ftFixtures').textContent=fmt(grandSell);
+  $('ftFreight').textContent=freight+handling>0?fmt(freight+handling):'Factory Paid / Included';
+  $('ftHandling').textContent=handling>0?fmt(handling):'—';
+  $('taxRateLabel').textContent=(taxRate*100).toFixed(2);
+  $('ftTax').textContent=tax>0?fmt(tax):'—';
+  $('ftCC').textContent=cc>0?fmt(cc):'—';
+  $('ftCost').textContent=fmt(grandCost);
+  $('ftGPdol').textContent=fmt(grandSell-grandCost);
+  $('ftGPpct').textContent=fmtPct(grandGP);
+  $('ftTotal').textContent=fmt(grandTotal);
+}
+
+function recalcAll() {
+  applyGlobalMargin();
+}
+
+function togglePhase(pi) {
+  const body=$(`phase-body-${pi}`),chev=$(`chev-${pi}`);
+  const hidden=body.style.display==='none';
+  body.style.display=hidden?'':'none';
+  chev.textContent=hidden?'▾':'▸';
+}
+
+function addLine(pi) {
+  PHASES[pi].lines.push({qty:1,type:'NEW',cat:'',vendor:'',desc:'New Line Item',dl:'',cost:0,sell:0});
+  state[pi].push({qty:1,cost:0,sell:0});
+  renderPhaseRows(pi); recalcTotals();
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  let csv='Phase,Qty,Type,DL Part #,Catalog #,Description,Vendor,Unit Cost,Unit Sell,GP%,Ext Cost,Ext Sell,GP $\n';
+  PHASES.forEach((phase,pi)=>{
+    phase.lines.forEach((line,li)=>{
+      const s=state[pi][li];
+      const extC=s.qty*s.cost, extS=s.qty*s.sell;
+      const gp=s.sell>0?((s.sell-s.cost)/s.sell*100).toFixed(1):'0';
+      csv+=[phase.id,s.qty,`"${line.type}"`,line.dl,`"${line.cat}"`,`"${line.desc}"`,`"${line.vendor}"`,
+            s.cost.toFixed(2),s.sell.toFixed(2),gp+'%',extC.toFixed(2),extS.toFixed(2),(extS-extC).toFixed(2)].join(',')+'\n';
+    });
+    (phase.allowances||[]).forEach(a=>{
+      csv+=[phase.id,1,'"ALLOWANCE"','DLSALE','','`'+a.desc+'`','',0,a.sell.toFixed(2),'100%',0,a.sell.toFixed(2),a.sell.toFixed(2)].join(',')+'\n';
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`CBMC_Quote_${$('quoteNum').value||'export'}.csv`;
+  a.click();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildUI();
+</script>
+</body>
+</html>
